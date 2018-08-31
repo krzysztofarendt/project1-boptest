@@ -29,7 +29,7 @@ class TestCase(object):
         self.y = {'time':[], 'TZone':[], 'PHeat':[], 'EHeat':[]}
         self.y_store = copy.deepcopy(self.y)
         # Define inputs
-        self.u = {'QHeat':[]}
+        self.u = {}
         self.u_store = copy.deepcopy(self.u)
         # Load fmu
         self.fmu = load_fmu(self.fmupath)
@@ -40,47 +40,22 @@ class TestCase(object):
         self.options['CVode_options']['rtol'] = 1e-6 
         # Set default communication step
         self.set_step(3600)
-        # Set initial simulation start
+        # Set simulation start and end
         self.start_time = 0
+        self.final_time = 86400        
         self.initialize = True
         self.options['initialize'] = self.initialize
         
-    def advance(self,u):
-        '''Advances the test case model simulation forward one step.
-        
-        Parameters
-        ----------
-        u : dict
-            Defines the control input data to be used for the step.
-            {<input_name> : <input_value>}
-            
-        Returns
-        -------
-        y : dict
-            Contains the measurement data at the end of the step.
-            {<measurement_name> : <measurement_value>}
-            
+    def advance(self):
+        '''Advances the test case model simulation forward.
+
         '''
         
-        # Set final time
-        self.final_time = self.start_time + self.step
-        # Set control inputs if they exist
-        if u.keys():
-            u_list = []
-            for key in u.keys():
-                value = float(u[key])
-                u_list.append(key)
-                u_trajectory = self.start_time
-                u_trajectory = np.vstack((u_trajectory, value))
-            input_object = (u_list, np.transpose(u_trajectory))
-        else:
-            input_object = None
         # Simulate
         self.options['initialize'] = self.initialize
         res = self.fmu.simulate(start_time=self.start_time, 
                                 final_time=self.final_time, 
-                                options=self.options, 
-                                input=input_object)
+                                options=self.options)
         # Get result and store measurement
         for key in self.y.keys():
             self.y[key] = res[key][-1]
@@ -88,13 +63,9 @@ class TestCase(object):
         # Store control inputs
         for key in self.u.keys():
             self.u_store[key] = self.u_store[key] + res[key].tolist()[1:] 
-        # Advance start time
-        self.start_time = self.final_time
-        # Prevent inialize
-        self.initialize = False
-        
+            
         return self.y
-
+        
     def get_step(self):
         '''Returns the current simulation step in seconds.'''
 
@@ -115,6 +86,7 @@ class TestCase(object):
         '''
         
         self.step = float(step)
+        self.fmu.set('config.samplePeriod',step)
         
         return None
         

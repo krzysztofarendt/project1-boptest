@@ -29,7 +29,7 @@ model SimpleRC_Input
       y_start=0)
     annotation (Placement(transformation(extent={{60,-90},{80,-70}})));
   Modelica.Blocks.Sources.Constant
-                               setpoint(k=20 + 273.15)
+                               setpoint(k=24 + 273.15)
     annotation (Placement(transformation(extent={{-130,-60},{-110,-40}})));
   IBPSA.Controls.Continuous.LimPID conPID(
     controllerType=Modelica.Blocks.Types.SimpleController.P,
@@ -45,7 +45,8 @@ model SimpleRC_Input
     t0=0,
     threshold=-1,
     hostAddress="127.0.0.1",
-    tcpPort=8888)
+    tcpPort=8888,
+    oveSig(start={24 + 273.15}))
     annotation (Placement(transformation(extent={{-92,-60},{-72,-40}})));
   IBPSA.Utilities.IO.RESTClient.Read_Real acs_Actuator(
     numVar=1,
@@ -53,10 +54,10 @@ model SimpleRC_Input
     threshold=-1,
     hostAddress="127.0.0.1",
     tcpPort=8888,
-    activation=IBPSA.Utilities.IO.RESTClient.Types.LocalActivation.use_activation,
-
-    t0=0.1)
+    t0=0.1,
+    activation=IBPSA.Utilities.IO.RESTClient.Types.LocalActivation.use_input)
     annotation (Placement(transformation(extent={{-30,-60},{-10,-40}})));
+
   Modelica.Blocks.Sources.BooleanConstant booleanConstant(k=false)
     annotation (Placement(transformation(extent={{-100,40},{-80,60}})));
   IBPSA.Utilities.IO.RESTClient.Send_Real sen_TZone(
@@ -64,7 +65,8 @@ model SimpleRC_Input
     varName={"TZone"},
     t0=0,
     hostAddress="127.0.0.1",
-    tcpPort=8888)
+    tcpPort=8888,
+    activation=IBPSA.Utilities.IO.RESTClient.Types.LocalActivation.use_input)
           annotation (Placement(transformation(extent={{90,20},{110,40}})));
 equation
   connect(res.port_b, cap.port)
@@ -102,6 +104,12 @@ equation
           0,255}));
   connect(sen_TZone.u[1], senTZone.T)
     annotation (Line(points={{88,30},{80,30},{80,0},{60,0}}, color={0,0,127}));
+  connect(acs_Actuator.activate, acs_Setpoint.activate) annotation (Line(points
+        ={{-32,-42},{-36,-42},{-36,-40},{-38,-40},{-38,-22},{-106,-22},{-106,
+          -42},{-94,-42}}, color={255,0,255}));
+  connect(sen_TZone.activate, acs_Setpoint.activate) annotation (Line(points={{
+          88,38},{8,38},{8,26},{-106,26},{-106,-42},{-94,-42}}, color={255,0,
+          255}));
   annotation (uses(Modelica(version="3.2.2"),
       IBPSA(version="2.0.0"),
       Buildings(version="6.0.0")), experiment(StopTime=86400, Interval=300));
